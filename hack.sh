@@ -21,17 +21,6 @@ check_dependencies() {
         missing_dependencies+=("wget")
     fi
 
-    # Verifica se o ngrok está instalado
-    if [ ! -e "$HOME/ngrok" ]; then
-        echo "Instalando Ngrok..."
-        install_ngrok
-    fi
-
-    # Verifica se o unzip está instalado
-    if ! command -v unzip &> /dev/null; then
-        missing_dependencies+=("unzip")
-    fi
-
     # Verifica se o jq está instalado
     if ! command -v jq &> /dev/null; then
         missing_dependencies+=("jq")
@@ -44,23 +33,6 @@ check_dependencies() {
     fi
 }
 
-# Função para instalar o ngrok
-install_ngrok() {
-    # Verifica a arquitetura do sistema
-    local arch=$(uname -m)
-    local ngrok_url="https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-arm.zip"
-
-    # Baixa e extrai o ngrok
-    echo "Baixando Ngrok..."
-    wget -q -O ngrok.zip "$ngrok_url"
-    unzip -o -q ngrok.zip
-    rm ngrok.zip
-    chmod +x ngrok
-    mv ngrok "$HOME"
-
-    echo "Ngrok instalado com sucesso!"
-}
-
 # Função para iniciar o servidor e gerar o link da página HTML
 start_server() {
     echo "Iniciando servidor..."
@@ -68,17 +40,15 @@ start_server() {
     # Inicie o servidor PHP para servir a página HTML
     php -S localhost:8080 &>/dev/null &
 
-    # Inicie o ngrok para gerar o link da página HTML
+    # Use o Serveo para gerar o link da página HTML
     echo "Gerando link da página HTML..."
-    "$HOME/ngrok" http 8080 &>/dev/null &
-
-    # Aguarde alguns segundos para que o ngrok gere o link
-    sleep 10
-
-    # Obtenha o link gerado pelo ngrok
-    local page_link=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
-
-    echo "Página HTML disponível em: $page_link"
+    local serveo_link="$(ssh -o StrictHostKeyChecking=no -R 80:localhost:8080 serveo.net 2>/dev/null | grep -oP 'https://[^\"]+')"
+    
+    if [ -z "$serveo_link" ]; then
+        echo "Erro ao obter o link do Serveo."
+    else
+        echo "Página HTML disponível em: $serveo_link"
+    fi
 }
 
 # Função principal
