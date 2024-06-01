@@ -23,7 +23,8 @@ check_dependencies() {
 
     # Verifica se o ngrok está instalado
     if [ ! -e "$HOME/ngrok" ]; then
-        missing_dependencies+=("ngrok")
+        echo "Instalando Ngrok..."
+        install_ngrok
     fi
 
     # Verifica se o unzip está instalado
@@ -31,11 +32,33 @@ check_dependencies() {
         missing_dependencies+=("unzip")
     fi
 
+    # Verifica se o jq está instalado
+    if ! command -v jq &> /dev/null; then
+        missing_dependencies+=("jq")
+    fi
+
     # Instala as ferramentas ausentes
     if [ ${#missing_dependencies[@]} -gt 0 ]; then
         echo "Instalando ferramentas necessárias: ${missing_dependencies[*]}"
         pkg install -y "${missing_dependencies[@]}"
     fi
+}
+
+# Função para instalar o ngrok
+install_ngrok() {
+    # Verifica a arquitetura do sistema
+    local arch=$(uname -m)
+    local ngrok_url="https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-arm.zip"
+
+    # Baixa e extrai o ngrok
+    echo "Baixando Ngrok..."
+    wget -q -O ngrok.zip "$ngrok_url"
+    unzip -o -q ngrok.zip
+    rm ngrok.zip
+    chmod +x ngrok
+    mv ngrok "$HOME"
+
+    echo "Ngrok instalado com sucesso!"
 }
 
 # Função para iniciar o servidor e gerar o link da página HTML
@@ -47,7 +70,7 @@ start_server() {
 
     # Inicie o ngrok para gerar o link da página HTML
     echo "Gerando link da página HTML..."
-    ./ngrok http 8080 &>/dev/null &
+    "$HOME/ngrok" http 8080 &>/dev/null &
 
     # Aguarde alguns segundos para que o ngrok gere o link
     sleep 10
